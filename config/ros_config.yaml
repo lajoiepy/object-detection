@@ -1,10 +1,13 @@
 subscribers:
 
     camera_2d:
-        topic: /camera/color/image_raw          # Image Topic
+        topic: /d400/color/image_raw          # Image Topic
 
     camera_3d:
-        topic: /camera/depth_registered/points  # PointCloud2 XYZRGB Topic
+        topic: /d400/depth/image_rect_raw  # Depth map Topic
+
+    camera_3d_info:
+        topic: /d400/depth/camera_info    # Depth map info Topic
 
     synchronized_queue_size: 20             # number of frames to consider synchronizing
                                             # via ApproximateTimeSynchronizer

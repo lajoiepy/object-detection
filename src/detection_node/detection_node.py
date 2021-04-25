@@ -4,7 +4,7 @@ import rospy
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
 from std_msgs.msg import Header
-from sensor_msgs.msg import Image, PointCloud2
+from sensor_msgs.msg import Image, PointCloud2, CameraInfo
 from sensor_msgs import point_cloud2 as pcl2
 from geometry_msgs.msg import Point
 import message_filters
@@ -37,9 +37,11 @@ class ObjectDetector3D:
     def init_subscribers(self):
         camera_2d = self.subscribers['camera_2d']
         camera_3d = self.subscribers['camera_3d']
+        camera_3d_info = self.subscribers['camera_3d_info']
 
         self.image_sub = message_filters.Subscriber(camera_2d['topic'], Image, buff_size=2**28)
-        self.pointcloud_sub = message_filters.Subscriber(camera_3d['topic'], PointCloud2, buff_size=2**28)
+        self.pointcloud_sub = message_filters.Subscriber(camera_3d['topic'], Image, buff_size=2**28)
+        self.pointcloud_info_sub = rospy.Subscriber(camera_3d_info['topic'], CameraInfo, self.info_cb)
 
         # try to synchronize the 2 topics as closely as possible for higher XYZ accuracy
         self.time_sync = message_filters.ApproximateTimeSynchronizer([self.image_sub, \
@@ -70,9 +72,20 @@ class ObjectDetector3D:
         self.pointcloud = ros_pointcloud
         self.pointcloud_timestamp= ros_pointcloud.header.stamp
 
+    def info_cb(self, info):
+        self.width = info.width
+        self.height = info.height
+        self.focal_x = info.K[0]
+        self.focal_y = info.K[4]
+
     def callback(self, ros_img, ros_pointcloud):
         self.image_cb(ros_img)
         self.pointcloud_cb(ros_pointcloud)
+
+    def convert_depth_pixel_to_metric_coordinate(self, depth, pixel_x, pixel_y, width, height, focal_x, focal_y):
+        X = (pixel_x - width/2)/focal_x *depth
+        Y = (pixel_y - height/2)/focal_y *depth
+        return X, Y, depth
 
     # perform object detection and calculate xyz coordinate of object from pointcloud
     def process(self):
@@ -94,8 +107,11 @@ class ObjectDetector3D:
             self.detected_objects = self.object_detector.detect(self.cv_image) 
 
             for detected_object in self.detected_objects:
-                xyz_coord = list(pcl2.read_points(self.pointcloud, skip_nans=True, \
-                   field_names=("x", "y", "z"), uvs=[detected_object.center]))
+                xyz_coord = []
+                self.cv_image = self.bridge.imgmsg_to_cv2(self.pointcloud, desired_encoding='passthrough')
+                depth = self.cv_image[detected_object.center[1], detected_object.center[0]]
+                xyz_coord.append(self.convert_depth_pixel_to_metric_coordinate(depth, detected_object.center[0], detected_object.center[1], self.width, self.height, self.focal_x, self.focal_y))
+                print(xyz_coord)
 
                 detected_object.set_xyz(xyz_coord)
                 rospy.loginfo(detected_object)    
@@ -119,6 +135,7 @@ class ObjectDetector3D:
             for detected_object in self.detected_objects:
                 point = Point()
                 point.x, point.y, point.z = detected_object.xyz_coord
+                print(point)
 
                 msg = DetectedObjectMsg()
                 msg.point = point
@@ -140,6 +157,7 @@ class ObjectDetector3D:
                 cv2.rectangle(self.cv_image, *detected_object.cv2_rect, (0,255,0), 3)
 
                 xyz_coord = str(["{:.2f}".format(pos) for pos in detected_object.xyz_coord])
+                print(xyz_coord)
 
                 cv2.putText(self.cv_image, detected_object.class_name, \
                     (detected_object.center[0], detected_object.center[1]), \
