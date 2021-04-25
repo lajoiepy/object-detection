@@ -28,3 +28,8 @@ publishers:
         topic: /object_detector/detected
         queue_size: 1
 
+    objects_markers:
+        topic: /object_detector/markers
+        queue_size: 1
+
+camera_frame_id: d400_aligned_depth_to_color_frame

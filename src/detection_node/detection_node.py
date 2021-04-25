@@ -7,6 +7,7 @@ from std_msgs.msg import Header
 from sensor_msgs.msg import Image, PointCloud2, CameraInfo
 from sensor_msgs import point_cloud2 as pcl2
 from geometry_msgs.msg import Point
+from visualization_msgs.msg import MarkerArray, Marker
 import message_filters
 
 from object_detection.msg import DetectedObjectMsg, DetectedObjectsMsg
@@ -57,6 +58,8 @@ class ObjectDetector3D:
         if (self.ros_config['enable_debug_image']):
             self.debug_img_pub = rospy.Publisher(self.publishers['debug_image']['topic'], \
                 Image, queue_size=self.publishers['debug_image']['queue_size'])
+            self.objects_markers_pub = rospy.Publisher(self.publishers['objects_markers']['topic'], \
+                MarkerArray, queue_size=self.publishers['objects_markers']['queue_size'])
 
     def image_cb(self, ros_img):
         try:
@@ -108,11 +111,10 @@ class ObjectDetector3D:
 
             for detected_object in self.detected_objects:
                 xyz_coord = []
-                self.cv_image = self.bridge.imgmsg_to_cv2(self.pointcloud, desired_encoding='passthrough')
-                depth = self.cv_image[detected_object.center[1], detected_object.center[0]]
-                xyz_coord.append(self.convert_depth_pixel_to_metric_coordinate(depth, detected_object.center[0], detected_object.center[1], self.width, self.height, self.focal_x, self.focal_y))
-                print(xyz_coord)
-
+                depth_image = self.bridge.imgmsg_to_cv2(self.pointcloud, desired_encoding='passthrough')
+                depth = depth_image[detected_object.center[1], detected_object.center[0]]
+                real_coord = self.convert_depth_pixel_to_metric_coordinate(depth, detected_object.center[0], detected_object.center[1], self.width, self.height, self.focal_x, self.focal_y)
+                xyz_coord.append(real_coord)
                 detected_object.set_xyz(xyz_coord)
                 rospy.loginfo(detected_object)    
 
@@ -135,7 +137,6 @@ class ObjectDetector3D:
             for detected_object in self.detected_objects:
                 point = Point()
                 point.x, point.y, point.z = detected_object.xyz_coord
-                print(point)
 
                 msg = DetectedObjectMsg()
                 msg.point = point
@@ -153,11 +154,13 @@ class ObjectDetector3D:
             cv2.putText(self.cv_image, inference_speed_text, (0,20), \
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1, cv2.LINE_AA)
 
+            markers = MarkerArray()
+            obj_id = 0
+
             for detected_object in self.detected_objects:
                 cv2.rectangle(self.cv_image, *detected_object.cv2_rect, (0,255,0), 3)
 
                 xyz_coord = str(["{:.2f}".format(pos) for pos in detected_object.xyz_coord])
-                print(xyz_coord)
 
                 cv2.putText(self.cv_image, detected_object.class_name, \
                     (detected_object.center[0], detected_object.center[1]), \
@@ -166,10 +169,27 @@ class ObjectDetector3D:
                 cv2.putText(self.cv_image, xyz_coord, \
                     (detected_object.center[0], detected_object.center[1]+20), \
                     cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255,255,255), 1, cv2.LINE_AA)
-                
+
+                marker = Marker()
+                marker.header.frame_id = self.ros_config['camera_frame_id']
+                marker.header.stamp = rospy.Time()
+                marker.pose.orientation.w = 1
+                marker.pose.position.x = detected_object.xyz_coord[0]/1000.0
+                marker.pose.position.y = detected_object.xyz_coord[1]/1000.0
+                marker.pose.position.z = detected_object.xyz_coord[2]/1000.0 
+                marker.scale.x = 0.1
+                marker.scale.y = 0.1
+                marker.scale.z = 0.1
+                marker.color.r = 1
+                marker.color.a = 1
+                marker.type = 2
+                marker.id = obj_id
+                obj_id = obj_id + 1
+                markers.markers.append(marker)              
             
 
             self.debug_img_pub.publish(self.bridge.cv2_to_imgmsg(self.cv_image, "bgr8"))
+            self.objects_markers_pub.publish(markers)
 
         
 
