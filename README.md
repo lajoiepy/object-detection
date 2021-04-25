@@ -1,7 +1,7 @@
 # object-detection
 
 This is a 3D Object Detection and Localization ROS package that supports development of custom computer vision detectors
-and fusion with 3D pointclouds to achieve object localization. A sample deep learning based detector (yolov3 with 
+and fusion with 3D depthimages to achieve object localization. A sample deep learning based detector (yolov3 with 
 opencv bindings) has been included to demo this package.
 
 
@@ -22,12 +22,12 @@ opencv >= 3.4.2 (to run the demo yolov3 detector from cv2.dnn)
 Demo was performed using an Intel RealSense D435, which has an RGB camera as well as infrared cameras for distance estimation.
 
 As can be seen, a bench was detected a distance away and the yolov3 detector was used to detect the bench in the RGB space (2D image).
-The realsense also provdes a pointcloud (that is conveniently aligned with the RGB camera frame) and hence we are able to fuse
+The realsense also provdes a depthimage (that is conveniently aligned with the RGB camera frame) and hence we are able to fuse
 the xyz and object detection information to localize the object as well. Given that the RealSense D435 utilizes active infrared
 stereo for depth information, it is not very accurate at faraway distances. But regardless, it is still able to provide a fairly
 decent estimate of the bench (to 80cm accuracy).
 
-Moreover, the pointcloud and RGB camera data were not synchronized and hence software level synchronization is performed to 
+Moreover, the depthimage and RGB camera data were not synchronized and hence software level synchronization is performed to 
 ensure higher accuracy of xyz coordinates. 
 
 
@@ -38,9 +38,9 @@ ensure higher accuracy of xyz coordinates.
    `catkin install`
 
 2. If there were errors during the build process, refer to [Build/Installation Problems](https://github.com/HashirZahir/object-detection/new/master?readme=1#buildinstallation-problems).
-Otherwise, proceed to run your rosbag / connect your camera to stream the RGB and Pointcloud data.
+Otherwise, proceed to run your rosbag / connect your camera to stream the RGB and depthimage data.
 
-3. Double check that the ROS topics specified in `config/ros_config.yaml` match the RBG camera and pointcloud topics.
+3. Double check that the ROS topics specified in `config/ros_config.yaml` match the RBG camera and depthimage topics.
 
 4. [Download](config/darknet_resources/README) the relevant yolov3 config files (classes, configs and weights of the model) as they too large to host on Github. 
 
@@ -57,8 +57,8 @@ detector can detect around 80 classes it can detect.
    
    <img src="/demo_images/object_detection_demo_output.png" alt="Object Detection Text output"/>
 
-   Notice that there are some detections with a x:0,y:0,z:0 output. This is because even though the camera RGB and Pointcloud data
-was aligned, there was simply no pointcloud data at the place where the bench was detected and hence a 0,0,0 was returned instead.
+   Notice that there are some detections with a x:0,y:0,z:0 output. This is because even though the camera RGB and depthimage data
+was aligned, there was simply no depthimage data at the place where the bench was detected and hence a 0,0,0 was returned instead.
 This 0,0,0 result was not discarded as on embeded systems, the deep learning object detector could take a long time to provide 
 a detection (aka low frame/sec rate) and hence skipping the frame would waste precious data that is already coming in very slowly.
 If needed, this behaviour can be modified.

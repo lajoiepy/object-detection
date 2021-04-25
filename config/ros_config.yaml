@@ -13,7 +13,7 @@ subscribers:
                                             # via ApproximateTimeSynchronizer
 
     absoulte_synchronized_time_diff: 0.2    # max delay between timestamp of 
-                                            # image and pointcloud topics
+                                            # image and depthimage topics
 
 enable_debug_image: True
 
@@ -33,3 +33,5 @@ publishers:
         queue_size: 1
 
 camera_frame_id: d400_aligned_depth_to_color_frame
+
+subsampling: 10
