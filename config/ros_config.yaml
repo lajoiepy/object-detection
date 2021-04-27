@@ -4,7 +4,7 @@ subscribers:
         topic: /d400/color/image_raw          # Image Topic
 
     camera_3d:
-        topic: /d400/depth/image_rect_raw  # Depth map Topic
+        topic: /d400/aligned_depth_to_color/image_raw  # Depth map Topic
 
     camera_3d_info:
         topic: /d400/depth/camera_info    # Depth map info Topic
@@ -32,6 +32,6 @@ publishers:
         topic: /object_detector/markers
         queue_size: 1
 
-camera_frame_id: d400_aligned_depth_to_color_frame
+camera_frame_id: d400_depth_optical_frame
 
 subsampling: 10
