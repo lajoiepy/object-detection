@@ -21,6 +21,7 @@ class ObjectDetector3D:
         self.load_configs()
         rospy.loginfo("Waiting for ML model to load")
         self.object_detector = ObjectDetector()
+        self.robot_id = rospy.get_param("robot_id")
         self.init_subscribers()
 
         self.init_publishers()
@@ -28,8 +29,6 @@ class ObjectDetector3D:
         self.detected_objects = []
         self.subsampling_counter = 0
         self.trigger_publish_output = False
-        
-        self.robot_id = rospy.get_param("robot_id")
 
 
     def load_configs(self):
@@ -46,9 +45,9 @@ class ObjectDetector3D:
         camera_3d = self.subscribers['camera_3d']
         camera_3d_info = self.subscribers['camera_3d_info']
 
-        self.image_sub = message_filters.Subscriber('/r'+self.robot_id+'/'+camera_2d['topic'], Image, buff_size=2**28)
-        self.depthimage_sub = message_filters.Subscriber('/r'+self.robot_id+'/'+camera_3d['topic'], Image, buff_size=2**28)
-        self.depthimage_info_sub = rospy.Subscriber('/r'+self.robot_id+'/'+camera_3d_info['topic'], CameraInfo, self.info_cb)
+        self.image_sub = message_filters.Subscriber('/r'+str(self.robot_id)+camera_2d['topic'], Image, buff_size=2**28)
+        self.depthimage_sub = message_filters.Subscriber('/r'+str(self.robot_id)+camera_3d['topic'], Image, buff_size=2**28)
+        self.depthimage_info_sub = rospy.Subscriber('/r'+str(self.robot_id)+camera_3d_info['topic'], CameraInfo, self.info_cb)
 
         # try to synchronize the 2 topics as closely as possible for higher XYZ accuracy
         self.time_sync = message_filters.ApproximateTimeSynchronizer([self.image_sub, \
