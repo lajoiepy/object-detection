@@ -182,7 +182,7 @@ class ObjectDetector3D:
                         cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255,255,255), 1, cv2.LINE_AA)
 
                     marker = Marker()
-                    marker.header.frame_id = 'r'+self.robot_id+'/'+self.ros_config['camera_frame_id']
+                    marker.header.frame_id = 'r'+str(self.robot_id)+'/'+str(self.ros_config['camera_frame_id'])
                     marker.header.stamp = rospy.Time()
                     marker.pose.orientation.w = 1
                     marker.pose.position.x = detected_object.xyz_coord[0]/1000.0
